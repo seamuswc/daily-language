@@ -18,12 +18,17 @@ class TencentSesService
             env('TENCENT_SECRET_ID'),
             env('TENCENT_SECRET_KEY')
         );
-
-        $this->client = new SesClient([
-            'region' => env('TENCENT_SES_REGION', 'ap-hongkong'),
-            'credential' => $cred,
-        ]);
+    
+        $region = env('TENCENT_SES_REGION', 'ap-hongkong');
+    
+        $clientProfile = new \TencentCloud\Common\Profile\ClientProfile();
+        $httpProfile = new \TencentCloud\Common\Profile\HttpProfile();
+        $httpProfile->setEndpoint("ses.tencentcloudapi.com");
+        $clientProfile->setHttpProfile($httpProfile);
+    
+        $this->client = new SesClient($cred, $region, $clientProfile);
     }
+    
 
     public function sendEmail(string $to, string $subject, string $htmlBody, string $textBody = '')
     {
