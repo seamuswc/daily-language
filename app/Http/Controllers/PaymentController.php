@@ -90,8 +90,7 @@ class PaymentController extends Controller
                         'plan_type' => $metadata['plan_type']
                     ]);
                     
-                    // Send welcome email
-                    //Mail::to($user->email)->send(new WelcomeMail($metadata['plan_type']));
+                    
                 }
             }
             
