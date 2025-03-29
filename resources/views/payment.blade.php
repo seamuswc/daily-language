@@ -112,12 +112,13 @@
                 
             </div>
             
-            <!-- Refresh Button -->
+            <!-- Refresh Button 
             <div class="mt-8 text-center">
                 <button onclick="window.location.reload()" class="bg-blue-100 text-blue-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-200 transition">
                     ↻ Generate New Sentence
                 </button>
             </div>
+            -->
         </div>
     </div>
 

@@ -10,6 +10,7 @@ class JapaneseSentenceService
 {
     public function generateSentence(): array
     {
+        return Cache::remember('deepseek_n3_japanese_sentence', now()->addHours(12), function () {
             try {
                 $response = Http::withHeaders([
                     'Authorization' => 'Bearer ' . env('DEEPSEEK_API_KEY'),
@@ -38,8 +39,9 @@ class JapaneseSentenceService
             }
 
             return $this->getFallbackSentence();
-        
+        });
     }
+
 
     protected function getPrompt(): string
     {

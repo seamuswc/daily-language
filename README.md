@@ -82,3 +82,7 @@ echo "it works" | sudo tee /var/www/language/public/.well-known/acme-challenge/t
 
 # 13. Run Certbot to issue SSL certificate
 sudo certbot --nginx -d namtokmoo.com -d www.namtokmoo.com
+
+
+#14 force clear language 12 hour cache
+Cache::forget('deepseek_n3_japanese_sentence');
