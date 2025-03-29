@@ -62,8 +62,8 @@ class JapaneseSentenceService
                "new line for each word\n" .
                "new line for each grammar.\n" . 
                "Breakdown and Grammar formatting should be the same. Each grammar doesnt need a new 'Grammar:' in front. 'Grammar:' is only allowed one time!\n" . 
-               "Also please dont add any questions or unnecesarry commentary"
-               
+               "Also please dont add any questions or unnecesarry commentary\n" .
+                "if, give, recieve, should, be sure to use these and other useful grammtical constructs"               
                ;
     }
 
