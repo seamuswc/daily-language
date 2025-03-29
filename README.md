@@ -22,9 +22,15 @@ npm run build
 
 # 8. Daily mail send
 crontab -e
+
 add below to bottom
+
 * * * * * cd /path/to/your-laravel-app && php artisan schedule:run >> /dev/null 2>&1
+
 🔄 What This Does:
+
     Your cron job runs Laravel's scheduler every minute
+
     Laravel internally decides which commands should actually run
+    
     Your send:daily-japanese command will be triggered automatically

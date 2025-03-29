@@ -5,7 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Models\User;
 use App\Services\JapaneseSentenceService;
-use App\Services\TencentSesMailService;
+use App\Services\TencentSesService;
 use Illuminate\Support\Facades\View;
 
 class SendDailyJapaneseSentence extends Command
@@ -16,7 +16,7 @@ class SendDailyJapaneseSentence extends Command
     protected $sentenceService;
     protected $ses;
 
-    public function __construct(JapaneseSentenceService $sentenceService, TencentSesMailService $ses)
+    public function __construct(JapaneseSentenceService $sentenceService, TencentSesService $ses)
     {
         parent::__construct();
         $this->sentenceService = $sentenceService;
