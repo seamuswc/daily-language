@@ -63,7 +63,7 @@ class JapaneseSentenceService
                "new line for each grammar.\n" . 
                "Breakdown and Grammar formatting should be the same. Each grammar doesnt need a new 'Grammar:' in front. 'Grammar:' is only allowed one time!\n" . 
                "Also please dont add any questions or unnecesarry commentary\n" .
-                "if, give, recieve, should, be sure to use these and other useful grammtical constructs"               
+                "Remeber, use grammatical structures that an adult would need, not too simple"               
                ;
     }
 

@@ -15,52 +15,62 @@
 <body class="bg-gray-100">
     <div class="container mx-auto px-4 py-12">
         <!-- Payment Form -->
-        <!-- Replace the payment form section with this -->
-            <div class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl">
-                <div class="p-8">
-                    <div class="text-center mb-8">
-                        <h1 class="text-2xl font-bold text-gray-800">Japanese Sentence Subscription</h1>
-                        <p class="text-gray-600 mt-2">Choose your subscription plan</p>
+        <div class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl">
+            <div class="p-8">
+                <div class="text-center mb-8">
+                    <h1 class="text-2xl font-bold text-gray-800">Japanese Sentence Subscription</h1>
+                    <p class="text-gray-600 mt-2">Choose your subscription plan</p>
+                </div>
+
+                @if ($user && $remainingDays > 0)
+                    <p class="text-green-600 font-medium mb-4">
+                        ✅ You are already subscribed. {{ $remainingDays }} day(s) remaining.
+                    </p>
+                @elseif ($user && $remainingDays <= 0)
+                    <p class="text-red-600 font-medium mb-4">
+                        ⚠️ Your subscription expired {{ abs($remainingDays) }} day(s) ago.
+                    </p>
+                @endif
+
+                <form action="{{ route('payment.process') }}" method="POST">
+                    @csrf
+                    <div class="mb-4">
+                        <label for="email" class="block text-gray-700 text-sm font-bold mb-2">Email Address</label>
+                        <input type="email" id="email" name="email" required
+                            value="{{ request('email') }}"
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                            placeholder="your@email.com">
                     </div>
                     
-                    <form action="{{ route('payment.process') }}" method="POST">
-                        @csrf
-                        <div class="mb-4">
-                            <label for="email" class="block text-gray-700 text-sm font-bold mb-2">Email Address</label>
-                            <input type="email" id="email" name="email" required
-                                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                                placeholder="your@email.com">
+                    <!-- Subscription Options -->
+                    <div class="mb-6 space-y-4">
+                        <div class="flex items-center">
+                            <input id="monthly" name="plan" type="radio" value="monthly" checked 
+                                class="h-4 w-4 text-blue-600 focus:ring-blue-500">
+                            <label for="monthly" class="ml-3 block text-gray-700">
+                                <span class="font-medium">Monthly Plan</span>
+                                <span class="text-gray-600"> - $2.00 (30 days)</span>
+                            </label>
                         </div>
-                        
-                        <!-- Subscription Options -->
-                        <div class="mb-6 space-y-4">
-                            <div class="flex items-center">
-                                <input id="monthly" name="plan" type="radio" value="monthly" checked 
-                                    class="h-4 w-4 text-blue-600 focus:ring-blue-500">
-                                <label for="monthly" class="ml-3 block text-gray-700">
-                                    <span class="font-medium">Monthly Plan</span>
-                                    <span class="text-gray-600"> - $2.00 (30 days)</span>
-                                </label>
-                            </div>
-                            <div class="flex items-center">
-                                <input id="yearly" name="plan" type="radio" value="yearly"
-                                    class="h-4 w-4 text-blue-600 focus:ring-blue-500">
-                                <label for="yearly" class="ml-3 block text-gray-700">
-                                    <span class="font-medium">Yearly Plan</span>
-                                    <span class="text-gray-600"> - $12.00 (1 year, save 50%)</span>
-                                </label>
-                            </div>
+                        <div class="flex items-center">
+                            <input id="yearly" name="plan" type="radio" value="yearly"
+                                class="h-4 w-4 text-blue-600 focus:ring-blue-500">
+                            <label for="yearly" class="ml-3 block text-gray-700">
+                                <span class="font-medium">Yearly Plan</span>
+                                <span class="text-gray-600"> - $12.00 (1 year, save 50%)</span>
+                            </label>
                         </div>
-                        
-                        <div class="mt-6">
-                            <button type="submit" 
-                                class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded focus:outline-none focus:shadow-outline">
-                                Continue to Payment
-                            </button>
-                        </div>
-                    </form>
-                </div>
+                    </div>
+                    
+                    <div class="mt-6">
+                        <button type="submit" 
+                            class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded focus:outline-none focus:shadow-outline">
+                            Continue to Payment
+                        </button>
+                    </div>
+                </form>
             </div>
+        </div>
 
         <!-- Japanese Sentence Display -->
         <div class="mt-8 max-w-2xl mx-auto bg-white p-8 rounded-xl shadow-lg">
@@ -109,16 +119,7 @@
                         <p class="whitespace-pre-line">{{ $sentence['grammar'] ?? '〜ですね is a common sentence-ending pattern used to seek agreement. です is the polite copula, and ね adds a sense of shared understanding.' }}</p>
                     </div>
                 </div>
-                
             </div>
-            
-            <!-- Refresh Button 
-            <div class="mt-8 text-center">
-                <button onclick="window.location.reload()" class="bg-blue-100 text-blue-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-200 transition">
-                    ↻ Generate New Sentence
-                </button>
-            </div>
-            -->
         </div>
     </div>
 

@@ -7,6 +7,7 @@ use App\Services\JapaneseSentenceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use App\Models\User;
+use Illuminate\Support\Facades\View;
 
 class PaymentController extends Controller
 {
@@ -15,12 +16,24 @@ class PaymentController extends Controller
         protected JapaneseSentenceService $sentenceService
     ) {}
 
-    public function showPaymentForm()
+    public function showPaymentForm(Request $request)
     {
-        return view('payment', [
-            'sentence' => $this->sentenceService->generateSentence()
-        ]);
+        $sentence = $this->sentenceService->generateSentence();
+
+        $user = null;
+        $remainingDays = null;
+
+        if ($request->has('email')) {
+            $user = User::where('email', $request->email)->first();
+
+            if ($user && $user->is_subscribed && $user->subscription_expires_at) {
+                $remainingDays = now()->diffInDays($user->subscription_expires_at, false);
+            }
+        }
+
+        return view('payment', compact('sentence', 'user', 'remainingDays'));
     }
+
 
     public function processPayment(Request $request)
     {
@@ -29,10 +42,9 @@ class PaymentController extends Controller
             'plan' => 'required|in:monthly,yearly'
         ]);
 
-        $user = User::firstOrCreate(
-            ['email' => $request->email],
-            ['is_subscribed' => false]
-        );
+        $user = User::firstOrCreate([
+            'email' => $request->email
+        ]);
 
         // Determine pricing based on plan
         $plan = $request->plan;
@@ -40,6 +52,10 @@ class PaymentController extends Controller
         $description = ($plan === 'yearly') 
             ? 'Yearly Japanese learning subscription' 
             : 'Monthly Japanese learning subscription';
+
+        $expiresAt = ($plan === 'yearly') 
+            ? now()->addYear()->toDateTimeString()
+            : now()->addDays(30)->toDateTimeString();
 
         $chargeData = [
             'name' => 'Japanese Daily Sentences Subscription',
@@ -53,9 +69,7 @@ class PaymentController extends Controller
                 'user_id' => $user->id,
                 'email' => $user->email,
                 'plan_type' => $plan,
-                'expires_at' => ($plan === 'yearly') 
-                    ? now()->addYear()->toDateTimeString() 
-                    : now()->addDays(30)->toDateTimeString()
+                'expires_at' => $expiresAt
             ],
             'redirect_url' => route('payment.success'),
             'cancel_url' => route('payment.cancel'),
@@ -82,18 +96,30 @@ class PaymentController extends Controller
             if ($event['event']['type'] === 'charge:confirmed') {
                 $metadata = $event['event']['data']['metadata'];
                 $user = User::find($metadata['user_id']);
-                
+
                 if ($user) {
+                    $plan = $metadata['plan_type'];
+                    $newExpiration = $plan === 'yearly'
+                        ? now()->addYear()
+                        : now()->addDays(30);
+
+                    if ($user->is_subscribed && $user->subscription_expires_at > now()) {
+                        $user->update([
+                            'subscription_expires_at' => $user->subscription_expires_at->addDays(30),
+                        ]);
+                    } else {
+                        $user->update([
+                            'subscription_expires_at' => $newExpiration,
+                        ]);
+                    }
+
                     $user->update([
                         'is_subscribed' => true,
-                        'subscription_expires_at' => $metadata['expires_at'],
-                        'plan_type' => $metadata['plan_type']
+                        'plan_type' => $plan,
                     ]);
-                    
-                    
                 }
             }
-            
+
             return response()->json(['success' => true]);
         }
 

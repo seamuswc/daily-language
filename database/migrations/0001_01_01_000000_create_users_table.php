@@ -17,7 +17,7 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->boolean('is_subscribed')->default(false);
             $table->string('plan_type')->nullable();
-            $table->timestamp('subscription_expires_at');
+            $table->timestamp('subscription_expires_at')->nullable();
             $table->rememberToken();
             $table->timestamps();
         });
