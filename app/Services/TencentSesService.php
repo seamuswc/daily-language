@@ -32,23 +32,20 @@ class TencentSesService
     }
 
 
-    public function sendEmail(string $to, string $subject, string $htmlBody, string $textBody = '')
+    public function sendEmailWithTemplate(string $to, string $templateId, array $templateData)
     {
         try {
             $req = new SendEmailRequest();
 
             $req->FromEmailAddress = env('TENCENT_SES_SENDER');
             $req->Destination = [$to];
-            $req->Subject = $subject;
+            $req->TemplateId = $templateId; // Use the template ID created in Tencent Cloud SES
 
-            $simple = new \TencentCloud\Ses\V20201002\Models\Simple();
-            $simple->Html = base64_encode($htmlBody);
-            $simple->Text = base64_encode($textBody ?: strip_tags($htmlBody));
-
-            $req->Simple = $simple;
+            // Pass dynamic template data as JSON (this will replace placeholders in the template)
+            $req->TemplateData = json_encode($templateData);
 
             $response = $this->client->SendEmail($req);
-            Log::info('Tencent SES email sent successfully.', ['response' => $response->toJsonString()]);
+            Log::info('Tencent SES email sent successfully using template.', ['response' => $response->toJsonString()]);
             return true;
 
         } catch (TencentCloudSDKException $e) {
@@ -56,5 +53,6 @@ class TencentSesService
             return false;
         }
     }
+
 
 }

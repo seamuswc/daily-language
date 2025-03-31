@@ -34,13 +34,20 @@ class SendDailyJapaneseSentence extends Command
 
         try {
             $sentence = $this->sentenceService->generateSentence();
-            $html = View::make('emails.daily_japanese', ['sentence' => $sentence])->render();
+
+            $templateData = [
+                'kanji' => $sentence['kanji'],
+                'hiragana' => $sentence['hiragana'],
+                'romaji' => $sentence['romaji'],
+                'breakdown' => $sentence['breakdown'],
+                'grammar' => $sentence['grammar']
+            ];
 
             foreach ($users as $user) {
-                $success = $this->ses->send(
+                $success = $this->ses->sendEmailWithTemplate(
                     $user->email,
-                    '今日の日本語 (Today\'s Japanese)',
-                    $html
+                    '65669',  // Replace with your actual template ID from Tencent Cloud
+                    $templateData
                 );
 
                 if ($success) {
@@ -53,4 +60,5 @@ class SendDailyJapaneseSentence extends Command
             $this->error("Failed to send emails: " . $e->getMessage());
         }
     }
+
 }
