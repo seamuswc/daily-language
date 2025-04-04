@@ -14,8 +14,11 @@ class SendDailyJapaneseSentence extends Command
 
     public function handle()
     {
-        $users = User::where('is_subscribed', true)->cursor();
-        $sentenceService = app(JapaneseSentenceService::class);
+        $language = env('SITE_LANGUAGE');
+        $users = User::where('is_subscribed', true)
+        ->where('language', $language)
+        ->cursor();
+   $sentenceService = app(JapaneseSentenceService::class);
         $sesService = app(TencentSesService::class);
 
         if ($users->isEmpty()) {

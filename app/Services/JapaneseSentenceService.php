@@ -45,7 +45,7 @@ class JapaneseSentenceService
 
     protected function getPrompt(): string
     {
-        return "Generate a new intermediate-level (N3) Japanese sentence with this exact structure:\n\n" .
+        return "Generate a new intermediate-level Japanese sentence, use grammatical concepts from N1-N3, with this exact structure:\n\n" .
                "漢字: [sentence]\n" .
                "ひらがな: [reading]\n" .
                "Romaji: [romaji]\n" .
@@ -56,14 +56,14 @@ class JapaneseSentenceService
                "漢字: 先生が説明を簡潔にまとめた。\n" .
                "ひらがな: せんせいが せつめいを かんけつに まとめた。\n" .
                "Romaji: Sensei ga setsumei o kanketsu ni matometa.\n" .
-               "Breakdown: 先生 (teacher) + が (subject) + 説明 (explanation) + を (object) + 簡潔に (concisely) + まとめた (summarized)\n" .
+               "Breakdown: 先生（せんせい）（teacher） + が（が）（subject） + 説明（せつめい）（explanation） + を（を）（object） + 簡潔に（かんけつに）（concisely） + まとめた（まとめた）（summarized）\n" .
                "Grammar: ～にまとめた = 'summarized into...'\n" .
                "Meaning: The teacher summarized the explanation concisely\n" .
                "new line for each word\n" .
                "new line for each grammar.\n" . 
                "Breakdown and Grammar formatting should be the same. Each grammar doesnt need a new 'Grammar:' in front. 'Grammar:' is only allowed one time!\n" . 
                "Also please dont add any questions or unnecesarry commentary\n" .
-                "Remeber, use grammatical structures that an adult would need, not too simple"               
+               "Remember, use grammatical structures that an adult would need, not too simple"               
                ;
     }
 

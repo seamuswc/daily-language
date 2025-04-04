@@ -18,6 +18,7 @@ return new class extends Migration
             $table->boolean('is_subscribed')->default(false);
             $table->string('plan_type')->nullable();
             $table->timestamp('subscription_expires_at')->nullable();
+            $table->string('language'); 
             $table->rememberToken();
             $table->timestamps();
         });

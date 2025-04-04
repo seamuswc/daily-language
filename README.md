@@ -1,88 +1,121 @@
-# 🚀 Laravel Deployment (Ubuntu + Nginx + SQLite + SSL)
+# 1. Install packages (includes MySQL server now)
+sudo apt update && sudo apt install php php-cli php-fpm php-mysql php-mbstring php-xml php-bcmath php-curl unzip curl git composer nodejs npm mysql-server certbot python3-certbot-nginx -y
 
-## 🧰 Full Setup (One Paste, Run Step-by-Step)
+# 2. Secure MySQL (optional but recommended)
+sudo mysql_secure_installation
 
-```bash
-# 1. Install all necessary packages
-sudo apt update && sudo apt install php php-cli php-fpm php-sqlite3 php-mbstring php-xml php-bcmath php-curl unzip curl git composer nodejs npm certbot python3-certbot-nginx -y
+# 3. Create MySQL DB + user
+DB_NAME=language_app
+DB_USER=language_user
+DB_PASS=supersecurepassword
 
-# 2. Clone Laravel project
+sudo mysql -u root -e "CREATE DATABASE ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+sudo mysql -u root -e "CREATE USER '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';"
+sudo mysql -u root -e "GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';"
+sudo mysql -u root -e "FLUSH PRIVILEGES;"
+
+# 4. Clone Laravel project
 cd /var/www
 sudo git clone <your-repo-url> language
 cd language
 
-# 3. Laravel app setup
+# 5. Laravel app setup
 cp .env.example .env
 composer install --no-dev --optimize-autoloader
 php artisan key:generate
 
-# 4. SQLite setup
-touch database/database.sqlite
-sudo chown www-data:www-data database/database.sqlite
-sudo chmod 664 database/database.sqlite
+# 6. Update .env for MySQL
+sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env
+sed -i 's/^DB_HOST=.*/DB_HOST=127.0.0.1/' .env
+sed -i 's/^DB_PORT=.*/DB_PORT=3306/' .env
+sed -i 's/^DB_DATABASE=.*/DB_DATABASE='${DB_NAME}'/' .env
+sed -i 's/^DB_USERNAME=.*/DB_USERNAME='${DB_USER}'/' .env
+sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD='${DB_PASS}'/' .env
 
-# 5. Set DB connection in .env
-sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=sqlite/' .env
-echo "DB_DATABASE=$(pwd)/database/database.sqlite" >> .env
-
-# 6. Laravel migration and storage link
+# 7. Migrate database and link storage
 php artisan migrate
 php artisan storage:link
 
-# 7. Set correct permissions
+# 8. Set correct permissions
 sudo chown -R www-data:www-data storage bootstrap/cache
 sudo chmod -R 775 storage bootstrap/cache
 
-# 8. Build frontend (optional, if using Vite or Mix)
+# 9. Build frontend (optional)
 npm install
 npm run build
 
-# 9. Add Laravel scheduler to crontab
+# 10. Add Laravel scheduler to crontab
 (crontab -l 2>/dev/null; echo "* * * * * cd /var/www/language && php artisan schedule:run >> /dev/null 2>&1") | crontab -
 
-# 10. Edit Nginx config
-sudo nano /etc/nginx/sites-available/default
+# 11. Edit Nginx config
+sudo nano /etc/nginx/sites-available/sitename
 
-server {
-    listen 80;
-    server_name namtokmoo.com www.namtokmoo.com;
+    server {
+        listen 80;
+        server_name namtokmoo.com www.namtokmoo.com;
 
-    root /var/www/language/public;
-    index index.php index.html;
+        root /var/www/language/public;
+        index index.php index.html;
 
-    location / {
-        try_files $uri $uri/ /index.php?$query_string;
+        location / {
+            try_files $uri $uri/ /index.php?$query_string;
+        }
+
+        location ~ \.php$ {
+            include snippets/fastcgi-php.conf;
+            fastcgi_pass unix:/run/php/php-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+            include fastcgi_params;
+        }
+
+        location ~ /\.ht {
+            deny all;
+        }
+
+        location ^~ /.well-known/acme-challenge/ {
+            alias /var/www/language/public/.well-known/acme-challenge/;
+            default_type "text/plain";
+            allow all;
+        }
     }
 
-    location ~ \.php$ {
-        include snippets/fastcgi-php.conf;
-        fastcgi_pass unix:/run/php/php-fpm.sock;
-        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-        include fastcgi_params;
-    }
+    sudo ln -s /etc/nginx/sites-available/namtokmoo.com /etc/nginx/sites-enabled/
+    sudo ln -s /etc/nginx/sites-available/sushicool.com /etc/nginx/sites-enabled/
 
-    location ~ /\.ht {
-        deny all;
-    }
-
-    # Let’s Encrypt challenge path
-    location ^~ /.well-known/acme-challenge/ {
-        alias /var/www/language/public/.well-known/acme-challenge/;
-        default_type "text/plain";
-        allow all;
-    }
-}
-
-# 11. Reload Nginx
+# 12. Reload Nginx
 sudo nginx -t && sudo systemctl reload nginx
 
-# 12. Test Let's Encrypt challenge path
+# 13. Test Let's Encrypt path
 sudo mkdir -p /var/www/language/public/.well-known/acme-challenge
 echo "it works" | sudo tee /var/www/language/public/.well-known/acme-challenge/test
 
-# 13. Run Certbot to issue SSL certificate
+# 14. Run Certbot to get SSL cert
 sudo certbot --nginx -d namtokmoo.com -d www.namtokmoo.com
 
-
-#14 force clear language 12 hour cache
+# 15
 Cache::forget('deepseek_n3_japanese_sentence');
+
+# 16 DNS
+
+A Record	
+@
+128.199.160.197
+
+CNAME Record	
+www
+namtokmoo.com
+
+TXT Record	
+@
+v=spf1 include:qcloudmail.com ~all
+
+TXT Record	
+_dmarc
+v=DMARC1; p=none
+
+TXT Record	
+qcloud._domainkey
+v=DKIM1; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCzddgkMMQnGBTARCF2WuaVK8kAQ8/RADG4kzxL2NkPPBDL1ByDi+9oFlpbNOvzMoM85bYfre0WIahnpMtaDn71AFk1h/H/S0HLJ7vpGimSUrmHF8biBzg53l1IpNebOQ9BM4u/6jYLA3GMLW6/30Ng8Dr92oW1nO9Ex2rPLbtHlwIDAQAB
+
+
+

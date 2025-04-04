@@ -23,8 +23,12 @@ class PaymentController extends Controller
         $user = null;
         $remainingDays = null;
 
+        $language = env('SITE_LANGUAGE');
+
         if ($request->has('email')) {
-            $user = User::where('email', $request->email)->first();
+            $user = User::where('email', $request->email)
+                        ->where('language', $language)
+                        ->first();
 
             if ($user && $user->is_subscribed && $user->subscription_expires_at) {
                 $remainingDays = now()->diffInDays($user->subscription_expires_at, false);
@@ -34,7 +38,6 @@ class PaymentController extends Controller
         return view('payment', compact('sentence', 'user', 'remainingDays'));
     }
 
-
     public function processPayment(Request $request)
     {
         $request->validate([
@@ -42,11 +45,13 @@ class PaymentController extends Controller
             'plan' => 'required|in:monthly,yearly'
         ]);
 
-        $user = User::firstOrCreate([
-            'email' => $request->email
-        ]);
+        $language = env('SITE_LANGUAGE');
 
-        // Determine pricing based on plan
+        $user = User::firstOrCreate(
+            ['email' => $request->email, 'language' => $language],
+            ['language' => $language]
+        );
+
         $plan = $request->plan;
         $amount = ($plan === 'yearly') ? '12.00' : '2.00';
         $description = ($plan === 'yearly') 
@@ -92,10 +97,14 @@ class PaymentController extends Controller
 
         if ($this->verifySignature($payload, $signature, $webhookSecret)) {
             $event = json_decode($payload, true);
-            
+
             if ($event['event']['type'] === 'charge:confirmed') {
                 $metadata = $event['event']['data']['metadata'];
-                $user = User::find($metadata['user_id']);
+                $language = env('SITE_LANGUAGE');
+
+                $user = User::where('id', $metadata['user_id'])
+                            ->where('language', $language)
+                            ->first();
 
                 if ($user) {
                     $plan = $metadata['plan_type'];
