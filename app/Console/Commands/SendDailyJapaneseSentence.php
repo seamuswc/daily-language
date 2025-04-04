@@ -6,26 +6,17 @@ use Illuminate\Console\Command;
 use App\Models\User;
 use App\Services\JapaneseSentenceService;
 use App\Services\TencentSesService;
-use Illuminate\Support\Facades\View;
 
 class SendDailyJapaneseSentence extends Command
 {
     protected $signature = 'send:daily-japanese';
     protected $description = 'Send daily Japanese sentences to subscribed users';
 
-    protected $sentenceService;
-    protected $ses;
-
-    public function __construct(JapaneseSentenceService $sentenceService, TencentSesService $ses)
-    {
-        parent::__construct();
-        $this->sentenceService = $sentenceService;
-        $this->ses = $ses;
-    }
-
     public function handle()
     {
         $users = User::where('is_subscribed', true)->cursor();
+        $sentenceService = app(JapaneseSentenceService::class);
+        $sesService = app(TencentSesService::class);
 
         if ($users->isEmpty()) {
             $this->info('No subscribed users found.');
@@ -33,7 +24,7 @@ class SendDailyJapaneseSentence extends Command
         }
 
         try {
-            $sentence = $this->sentenceService->generateSentence();
+            $sentence = $sentenceService->generateSentence();
 
             $templateData = [
                 'kanji' => $sentence['kanji'],
@@ -43,11 +34,15 @@ class SendDailyJapaneseSentence extends Command
                 'grammar' => $sentence['grammar']
             ];
 
+            $templateId = (int) env('TENCENT_SES_TEMPLATE_ID');
+            $subject = '今日の日本語 ' . date('m-d-Y');
+
             foreach ($users as $user) {
-                $success = $this->ses->sendEmailWithTemplate(
+                $success = $sesService->sendEmailWithTemplate(
                     $user->email,
-                    '65669',  // Replace with your actual template ID from Tencent Cloud
-                    $templateData
+                    $templateId,
+                    $templateData,
+                    $subject
                 );
 
                 if ($success) {
@@ -56,9 +51,13 @@ class SendDailyJapaneseSentence extends Command
                     $this->error("Failed to send to {$user->email}");
                 }
             }
+
         } catch (\Exception $e) {
-            $this->error("Failed to send emails: " . $e->getMessage());
+            $this->error("Error: " . $e->getMessage());
+            logger()->error('Daily Japanese send failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
         }
     }
-
 }
