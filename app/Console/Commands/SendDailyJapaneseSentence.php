@@ -18,7 +18,7 @@ class SendDailyJapaneseSentence extends Command
         $users = User::where('is_subscribed', true)
         ->where('language', $language)
         ->cursor();
-   $sentenceService = app(JapaneseSentenceService::class);
+        $sentenceService = app(JapaneseSentenceService::class);
         $sesService = app(TencentSesService::class);
 
         if ($users->isEmpty()) {

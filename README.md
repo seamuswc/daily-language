@@ -44,8 +44,8 @@ sudo chmod -R 775 storage bootstrap/cache
 npm install
 npm run build
 
-# 10. Add Laravel scheduler to crontab
-(crontab -l 2>/dev/null; echo "* * * * * cd /var/www/language && php artisan schedule:run >> /dev/null 2>&1") | crontab -
+# 10. Add Laravel scheduler to crontab //change folder name
+(crontab -l 2>/dev/null; echo "* * * * * cd /var/www/japaneseToEnglish && php artisan schedule:run >> /dev/null 2>&1") | crontab -
 
 # 11. Edit Nginx config
 sudo nano /etc/nginx/sites-available/sitename
@@ -79,18 +79,19 @@ sudo nano /etc/nginx/sites-available/sitename
         }
     }
 
-    sudo ln -s /etc/nginx/sites-available/namtokmoo.com /etc/nginx/sites-enabled/
-    sudo ln -s /etc/nginx/sites-available/sushicool.com /etc/nginx/sites-enabled/
+    sudo ln -s /etc/nginx/sites-available/englishToJapanese /etc/nginx/sites-enabled/
+    sudo ln -s /etc/nginx/sites-available/japaneseToEnglish /etc/nginx/sites-enabled/
 
 # 12. Reload Nginx
 sudo nginx -t && sudo systemctl reload nginx
 
 # 13. Test Let's Encrypt path
-sudo mkdir -p /var/www/language/public/.well-known/acme-challenge
-echo "it works" | sudo tee /var/www/language/public/.well-known/acme-challenge/test
+sudo mkdir -p /var/www/japaneseToEnglish/public/.well-known/acme-challenge
+echo "it works" | sudo tee /var/www/japaneseToEnglish/public/.well-known/acme-challenge/test
 
 # 14. Run Certbot to get SSL cert
-sudo certbot --nginx -d namtokmoo.com -d www.namtokmoo.com
+sudo certbot --nginx -d nihongo.email -d www.nihongo.email -d xn--dj1a40n.email -d www.xn--dj1a40n.email 
+
 
 # 15
 Cache::forget('deepseek_n3_japanese_sentence');
