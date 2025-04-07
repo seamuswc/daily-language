@@ -19,6 +19,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        app()->setLocale(env('APP_LOCALE', 'en_ja'));
+
     }
 }

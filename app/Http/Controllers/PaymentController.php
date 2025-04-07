@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\CoinbaseCommerceService;
-use App\Services\JapaneseSentenceService;
+use App\Services\DailySentenceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use App\Models\User;
@@ -13,21 +13,22 @@ class PaymentController extends Controller
 {
     public function __construct(
         protected CoinbaseCommerceService $coinbaseService,
-        protected JapaneseSentenceService $sentenceService
+        protected DailySentenceService $sentenceService
     ) {}
 
     public function showPaymentForm(Request $request)
     {
-        $sentence = $this->sentenceService->generateSentence();
+        $sourceLanguage = env('SOURCE_LANGUAGE');
+        $targetLanguage = env('TARGET_LANGUAGE');
+
+        $sentence = $this->sentenceService->generateSentence($sourceLanguage, $targetLanguage);
 
         $user = null;
         $remainingDays = null;
 
-        $language = env('SITE_LANGUAGE');
-
         if ($request->has('email')) {
             $user = User::where('email', $request->email)
-                        ->where('language', $language)
+                        ->where('language', $targetLanguage)
                         ->first();
 
             if ($user && $user->is_subscribed && $user->subscription_expires_at) {
@@ -45,25 +46,25 @@ class PaymentController extends Controller
             'plan' => 'required|in:monthly,yearly'
         ]);
 
-        $language = env('SITE_LANGUAGE');
+        $targetLanguage = env('TARGET_LANGUAGE');
 
         $user = User::firstOrCreate(
-            ['email' => $request->email, 'language' => $language],
-            ['language' => $language]
+            ['email' => $request->email, 'language' => $targetLanguage],
+            ['language' => $targetLanguage]
         );
 
         $plan = $request->plan;
         $amount = ($plan === 'yearly') ? '12.00' : '2.00';
         $description = ($plan === 'yearly') 
-            ? 'Yearly Japanese learning subscription' 
-            : 'Monthly Japanese learning subscription';
+            ? 'Yearly subscription' 
+            : 'Monthly subscription';
 
         $expiresAt = ($plan === 'yearly') 
             ? now()->addYear()->toDateTimeString()
             : now()->addDays(30)->toDateTimeString();
 
         $chargeData = [
-            'name' => 'Japanese Daily Sentences Subscription',
+            'name' => 'Daily Sentence Subscription',
             'description' => $description,
             'pricing_type' => 'fixed_price',
             'local_price' => [
@@ -100,10 +101,10 @@ class PaymentController extends Controller
 
             if ($event['event']['type'] === 'charge:confirmed') {
                 $metadata = $event['event']['data']['metadata'];
-                $language = env('SITE_LANGUAGE');
+                $targetLanguage = env('TARGET_LANGUAGE');
 
                 $user = User::where('id', $metadata['user_id'])
-                            ->where('language', $language)
+                            ->where('language', $targetLanguage)
                             ->first();
 
                 if ($user) {

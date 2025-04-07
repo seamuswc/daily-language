@@ -1,0 +1,25 @@
+Generate a new intermediate-level English sentence for native Japanese speakers. Use grammatical structures that appear in TOEIC, TOEFL, or IELTS intermediate levels. Output must follow this exact structure:
+
+English: [sentence]
+読み方: [yomikata in katakana]
+Word Breakdown: [word-by-word with Japanese translations]
+Grammar: [explanation in Japanese]
+Meaning: [natural Japanese translation]
+
+Example:
+English: She handed in the report before the deadline.
+読み方: シー ハンディド イン ザ レポート ビフォア ザ デッドライン
+Word Breakdown: 
+She（彼女）
+handed in（提出した）
+the（その）
+report（報告書）
+before（〜より前に）
+the deadline（締め切り）
+
+Grammar: "hand in" は句動詞で「提出する」という意味です。過去形なので "handed in" になります。
+Meaning: 彼女は締め切り前に報告書を提出した。
+
+new line for each word  
+new line for each grammar point  
+Only include the 5 labeled sections and keep the output minimal, no extra comments

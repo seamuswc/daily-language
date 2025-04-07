@@ -87,12 +87,16 @@ class TencentSesService
 
     protected function processTemplateData(array $data): array
     {
-        return [
-            'kanji' => $data['kanji'] ?? '',
-            'hiragana' => $data['hiragana'] ?? '',
-            'romaji' => $data['romaji'] ?? '',
-            'breakdown' => str_replace(["\n", "\\n"], '<br>', $data['breakdown'] ?? ''),
-            'grammar' => str_replace(["\n", "\\n"], '<br>', $data['grammar'] ?? '')
-        ];
+        $formatted = [];
+
+        foreach ($data as $key => $value) {
+            if (in_array($key, ['breakdown', 'grammar']) && is_string($value)) {
+                $formatted[$key] = str_replace(["\n", "\\n"], '<br>', $value);
+            } else {
+                $formatted[$key] = $value;
+            }
+        }
+
+        return $formatted;
     }
 }

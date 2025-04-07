@@ -1,0 +1,22 @@
+Generate a new intermediate-level Japanese sentence, use grammatical concepts from N1-N3, with this exact structure:
+
+漢字: [sentence]
+ひらがな: [reading]
+Romaji: [romaji]
+Breakdown: [word-by-word]
+Grammar: [explanation]
+Meaning: [english]
+
+Example:
+漢字: 先生が説明を簡潔にまとめた。
+ひらがな: せんせいが せつめいを かんけつに まとめた。
+Romaji: Sensei ga setsumei o kanketsu ni matometa.
+Breakdown: 先生（せんせい）（teacher） + が（が）（subject） + 説明（せつめい）（explanation） + を（を）（object） + 簡潔に（かんけつに）（concisely） + まとめた（まとめた）（summarized）
+Grammar: ～にまとめた = 'summarized into...'
+Meaning: The teacher summarized the explanation concisely
+
+new line for each word  
+new line for each grammar  
+Breakdown and Grammar formatting should be the same. Each grammar doesn't need a new 'Grammar:' in front. 'Grammar:' is only allowed one time!  
+Also please don't add any questions or unnecessary commentary  
+Remember, use grammatical structures that an adult would need, not too simple
