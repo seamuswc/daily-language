@@ -9,44 +9,63 @@ use Illuminate\Support\Facades\File;
 
 class DailySentenceService
 {
+
+    protected function fetchFromDeepSeek(string $sourceLanguage, string $targetLanguage): ?array
+    {
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . env('DEEPSEEK_API_KEY'),
+                'Content-Type'  => 'application/json',
+            ])->timeout(15)->retry(3, 100)->post('https://api.deepseek.com/v1/chat/completions', [
+                'model'    => 'deepseek-chat',
+                'messages' => [
+                    [
+                        'role'    => 'user',
+                        'content' => $this->getPrompt($sourceLanguage, $targetLanguage)
+                    ]
+                ]
+            ]);
+
+            if ($response->successful()) {
+                return $this->parseResponse($response->json());
+            }
+
+            Log::error('DeepSeek API Error', [
+                'status'   => $response->status(),
+                'response' => $response->body()
+            ]);
+        } catch (\Exception $e) {
+            Log::error('DeepSeek API Exception', [
+                'message' => $e->getMessage(),
+                'trace'   => $e->getTraceAsString()
+            ]);
+        }
+
+        return null;
+    }
+
     public function generateSentence(string $sourceLanguage, string $targetLanguage): array
     {
         $cacheKey = "daily_sentence_{$sourceLanguage}_to_{$targetLanguage}";
 
-        return Cache::remember($cacheKey, now()->addHours(12), function () use ($sourceLanguage, $targetLanguage) {
-            try {
-                $response = Http::withHeaders([
-                    'Authorization' => 'Bearer ' . env('DEEPSEEK_API_KEY'),
-                    'Content-Type'  => 'application/json',
-                ])->timeout(15)->retry(3, 100)->post('https://api.deepseek.com/v1/chat/completions', [
-                    'model'    => 'deepseek-chat',
-                    'messages' => [
-                        [
-                            'role'    => 'user',
-                            'content' => $this->getPrompt($sourceLanguage, $targetLanguage)
-                        ]
-                    ]
-                ]);
+        // First, check if cached
+        if (Cache::has($cacheKey)) {
+            return Cache::get($cacheKey);
+        }
 
-                if ($response->successful()) {
-                    return $this->parseResponse($response->json());
-                }
+        // Try getting from API
+        $sentence = $this->fetchFromDeepSeek($sourceLanguage, $targetLanguage);
 
-                Log::error('DeepSeek API Error', [
-                    'status'   => $response->status(),
-                    'response' => $response->body()
-                ]);
+        if ($sentence !== null) {
+            // Cache only valid API result
+            Cache::put($cacheKey, $sentence, now()->addHours(12));
+            return $sentence;
+        }
 
-            } catch (\Exception $e) {
-                Log::error('DeepSeek API Exception', [
-                    'message' => $e->getMessage(),
-                    'trace'   => $e->getTraceAsString()
-                ]);
-            }
-
-            return $this->getFallbackSentence($sourceLanguage, $targetLanguage);
-        });
+        // Otherwise, return fallback without caching
+        return $this->getFallbackSentence($sourceLanguage, $targetLanguage);
     }
+
 
     protected function getPrompt(string $source, string $target): string
     {
