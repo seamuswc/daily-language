@@ -1,6 +1,6 @@
 protected function schedule(Schedule $schedule)
 {
-    $schedule->command('send:daily-japanese')
+    $schedule->command('send:daily-sentence')
         ->dailyAt('09:00') // 9 AM daily
         ->timezone('Asia/Tokyo'); // Adjust to your audience’s timezone
 }
