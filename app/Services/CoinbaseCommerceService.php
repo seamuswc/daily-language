@@ -17,6 +17,8 @@ class CoinbaseCommerceService
             'base_uri' => 'https://api.commerce.coinbase.com/',
             'headers' => [
                 'X-CC-Api-Key' => $this->apiKey,
+                'X-CC-Version' => '2018-03-22',
+                'Accept' => 'application/json',
                 
                 'Content-Type' => 'application/json',
             ]

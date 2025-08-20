@@ -11,6 +11,22 @@
 <div class="container mx-auto px-4 py-12">
     <div class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl">
         <div class="p-8">
+            @if (session('error'))
+                <div class="mb-4 rounded bg-red-100 text-red-800 p-3">
+                    {{ session('error') }}
+                </div>
+            @endif
+
+            @if ($errors->any())
+                <div class="mb-4 rounded bg-red-100 text-red-800 p-3">
+                    <ul class="list-disc pl-5">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
             <div class="text-center mb-8">
                 <h1 class="text-2xl font-bold text-gray-800">{{ __('ui.subscribe_header') }}</h1>
                 <p class="text-gray-600 mt-2">{{ __('ui.subscribe_text') }}</p>
@@ -20,7 +36,7 @@
                 <p class="text-green-600 font-medium mb-4">
                     {{ __('ui.already_subscribed', ['days' => $remainingDays]) }}
                 </p>
-            @elseif ($user && $remainingDays <= 0)
+            @elseif ($user && isset($remainingDays) && $remainingDays <= 0)
                 <p class="text-red-600 font-medium mb-4">
                     {{ __('ui.subscription_expired', ['days' => abs($remainingDays)]) }}
                 </p>

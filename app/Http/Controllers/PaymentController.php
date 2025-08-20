@@ -69,7 +69,7 @@ class PaymentController extends Controller
             'pricing_type' => 'fixed_price',
             'local_price' => [
                 'amount' => $amount,
-                'currency' => 'USDC'
+                'currency' => 'USD'
             ],
             'metadata' => [
                 'user_id' => $user->id,
@@ -113,9 +113,11 @@ class PaymentController extends Controller
                         ? now()->addYear()
                         : now()->addDays(30);
 
-                    if ($user->is_subscribed && $user->subscription_expires_at > now()) {
+                    if ($user->is_subscribed && $user->subscription_expires_at && $user->subscription_expires_at > now()) {
                         $user->update([
-                            'subscription_expires_at' => $user->subscription_expires_at->addDays(30),
+                            'subscription_expires_at' => $plan === 'yearly'
+                                ? $user->subscription_expires_at->copy()->addYear()
+                                : $user->subscription_expires_at->copy()->addDays(30),
                         ]);
                     } else {
                         $user->update([
@@ -144,7 +146,7 @@ class PaymentController extends Controller
 
     public function paymentSuccess()
     {
-        return view('payment-success');
+        return view('payment_success');
     }
 
     public function paymentCancel()

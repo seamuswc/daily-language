@@ -1,12 +1,22 @@
-protected function schedule(Schedule $schedule)
-{
-    $schedule->command('send:daily-sentence')
-        ->dailyAt('09:00') // 9 AM daily
-        ->timezone('Asia/Tokyo'); // Adjust to your audience’s timezone
-}
+<?php
 
-protected function commands()
+namespace App\Console;
+
+use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
+
+class Kernel extends ConsoleKernel
 {
-    $this->load(__DIR__.'/Commands'); // This line loads commands automatically
-    require base_path('routes/console.php');
+    protected function schedule(Schedule $schedule)
+    {
+        $schedule->command('send:daily-sentence')
+            ->dailyAt('09:00')
+            ->timezone('Asia/Tokyo');
+    }
+
+    protected function commands()
+    {
+        $this->load(__DIR__.'/Commands');
+        require base_path('routes/console.php');
+    }
 }
