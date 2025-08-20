@@ -134,6 +134,7 @@
     <div class="mt-4 grid grid-cols-1 gap-2">
         <button id="open-phantom" class="w-full bg-violet-600 hover:bg-violet-700 text-white rounded py-2 text-sm">Open in Phantom</button>
         <button id="open-solflare" class="w-full bg-orange-600 hover:bg-orange-700 text-white rounded py-2 text-sm">Open in Solflare</button>
+        <a id="open-phantom-mobile" class="w-full bg-violet-700 hover:bg-violet-800 text-white rounded py-2 text-sm text-center hidden" target="_blank" rel="noopener">Open in Phantom (Mobile)</a>
         <p class="text-[10px] text-gray-500 text-center">On desktop, these may not work unless a wallet is installed and registered. QR is the most reliable on mobile.</p>
     </div>
 </div>
@@ -254,6 +255,7 @@
             const hasSolProvider = !!(window.solana && (window.solana.isPhantom || window.solana.isSolflare));
             const phantomBtn = document.getElementById('open-phantom');
             const solflareBtn = document.getElementById('open-solflare');
+            const phantomMobile = document.getElementById('open-phantom-mobile');
             if (!hasSolProvider) {
                 phantomBtn?.setAttribute('disabled', 'true');
                 phantomBtn?.classList.add('opacity-50', 'cursor-not-allowed');
@@ -268,6 +270,20 @@
                     e.preventDefault();
                     try { await sendSolanaUsdcWithExtension(payload); } catch { alert('Solflare failed. Use QR.'); }
                 });
+            }
+
+            // Mobile deep link for Phantom
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            if (phantomMobile && isMobile) {
+                const universal = new URL('https://phantom.app/ul/v1/pay');
+                universal.searchParams.set('recipient', recipient);
+                universal.searchParams.set('amount', amount);
+                universal.searchParams.set('spl-token', splToken);
+                universal.searchParams.set('reference', reference);
+                universal.searchParams.set('label', 'Daily Sentence Subscription');
+                universal.searchParams.set('message', 'Subscription payment');
+                phantomMobile.href = universal.toString();
+                phantomMobile.classList.remove('hidden');
             }
         }
 
