@@ -14,3 +14,4 @@ Route::post('/coinbase/webhook', [PaymentController::class, 'handleWebhook'])->n
 Route::post('/api/checkout/init', [Web3Controller::class, 'init'])->name('checkout.init');
 Route::get('/api/checkout/status/{reference}', [Web3Controller::class, 'status'])->name('checkout.status');
 Route::post('/api/checkout/submit-tx', [Web3Controller::class, 'submitTx'])->name('checkout.submit_tx');
+Route::post('/api/client-log', [Web3Controller::class, 'clientLog'])->name('client.log');

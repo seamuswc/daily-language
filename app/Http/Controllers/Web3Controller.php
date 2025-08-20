@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use App\Services\SolanaPayService;
 use App\Services\AptosPayService;
+use Illuminate\Support\Facades\Log;
 
 class Web3Controller extends Controller
 {
@@ -18,6 +19,14 @@ class Web3Controller extends Controller
             'plan' => 'required|in:monthly,yearly',
             'chain' => 'required|in:solana,aptos',
             'token' => 'required|in:usdc',
+        ]);
+
+        Log::info('Checkout init request', [
+            'email' => $data['email'],
+            'plan' => $data['plan'],
+            'chain' => $data['chain'],
+            'ip' => $request->ip(),
+            'ua' => $request->userAgent(),
         ]);
 
         $pricing = config('crypto.pricing');
@@ -45,6 +54,14 @@ class Web3Controller extends Controller
             'amount_usd' => $amountUsd,
             'amount_token' => (string) $amountToken,
             'status' => 'pending',
+        ]);
+
+        Log::info('Checkout invoice created', [
+            'reference' => $reference,
+            'recipient' => $recipient,
+            'amount_token' => (string) $amountToken,
+            'amount_usd' => (string) $amountUsd,
+            'chain' => $data['chain'],
         ]);
 
         $payload = [
@@ -88,6 +105,10 @@ class Web3Controller extends Controller
             );
 
             if ($sig) {
+                Log::info('Solana payment verified', [
+                    'reference' => $invoice->reference,
+                    'tx' => $sig,
+                ]);
                 $invoice->update([
                     'status' => 'confirmed',
                     'tx_id' => $sig,
@@ -104,6 +125,10 @@ class Web3Controller extends Controller
             // No polling implementation yet; status remains pending until user submits tx hash
         }
 
+        Log::info('Checkout status polled', [
+            'reference' => $reference,
+            'status' => $invoice->status,
+        ]);
         return response()->json(['status' => $invoice->status, 'txId' => $invoice->tx_id]);
     }
 
@@ -142,6 +167,11 @@ class Web3Controller extends Controller
             'tx' => 'required|string',
         ]);
         $invoice = Invoice::where('reference', $data['reference'])->firstOrFail();
+        Log::info('Submit tx received', [
+            'reference' => $data['reference'],
+            'tx' => $data['tx'],
+            'chain' => $invoice->chain,
+        ]);
         if ($invoice->status === 'confirmed') {
             return response()->json(['status' => 'confirmed', 'txId' => $invoice->tx_id]);
         }
@@ -164,6 +194,10 @@ class Web3Controller extends Controller
             );
         }
         if ($ok) {
+            Log::info('Payment verified via submitTx', [
+                'reference' => $data['reference'],
+                'tx' => $data['tx'],
+            ]);
             $invoice->update([
                 'status' => 'confirmed',
                 'tx_id' => $data['tx'],
@@ -172,6 +206,19 @@ class Web3Controller extends Controller
             return response()->json(['status' => 'confirmed', 'txId' => $data['tx']]);
         }
         return response()->json(['status' => 'pending']);
+    }
+
+    public function clientLog(Request $request)
+    {
+        $event = (string) $request->input('event', 'client');
+        $data = $request->input('data', []);
+        Log::info('ClientEvent', [
+            'event' => $event,
+            'data' => $data,
+            'ip' => $request->ip(),
+            'ua' => $request->userAgent(),
+        ]);
+        return response()->json(['ok' => true]);
     }
 
     protected function activateSubscription(Invoice $invoice): void

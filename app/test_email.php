@@ -78,7 +78,21 @@ try {
         $templateData,
         $subject
     );
-    echo $success ? "✅ Email sent successfully to {$to}!\n" : "❌ Failed to send email.\n";
+    if ($success) {
+        Log::info('Test email sent', [
+            'to' => $to,
+            'templateId' => $templateId,
+            'subject' => $subject,
+        ]);
+        echo "✅ Email sent successfully to {$to}!\n";
+    } else {
+        Log::error('Test email failed', [
+            'to' => $to,
+            'templateId' => $templateId,
+            'subject' => $subject,
+        ]);
+        echo "❌ Failed to send email.\n";
+    }
 } catch (\Throwable $e) {
     Log::error('Failed to send email', ['error' => $e->getMessage()]);
     fwrite(STDERR, "❌ Error: " . $e->getMessage() . "\n");
