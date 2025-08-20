@@ -133,7 +133,6 @@
     <div class="text-[10px] text-gray-400 mt-1">USDC Mint: <span id="solana-mint"></span></div>
     <div class="mt-4 grid grid-cols-1 gap-2">
         <button id="open-phantom" class="w-full bg-violet-600 hover:bg-violet-700 text-white rounded py-2 text-sm">Open in Phantom</button>
-        <button id="open-solflare" class="w-full bg-orange-600 hover:bg-orange-700 text-white rounded py-2 text-sm">Open in Solflare</button>
         <a id="open-phantom-mobile" class="w-full bg-violet-700 hover:bg-violet-800 text-white rounded py-2 text-sm text-center hidden" target="_blank" rel="noopener">Open in Phantom (Mobile)</a>
         <p class="text-[10px] text-gray-500 text-center">On desktop, these may not work unless a wallet is installed and registered. QR is the most reliable on mobile.</p>
     </div>
@@ -151,9 +150,8 @@
     <div class="text-xs text-gray-500">Reference: <span id="aptos-ref"></span></div>
     <div class="text-[10px] text-gray-400 mt-1">USDC Coin: <span id="aptos-coin"></span></div>
     <div id="aptos-buttons" class="mt-4 grid grid-cols-1 gap-2">
-        <button id="open-petra" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded py-2 text-sm">Open in Petra</button>
         <button id="open-pontem" class="w-full bg-pink-600 hover:bg-pink-700 text-white rounded py-2 text-sm">Open in Pontem</button>
-        <p class="text-[10px] text-gray-500 text-center">If buttons don’t open a wallet, scan the QR with your mobile wallet.</p>
+        <p class="text-[10px] text-gray-500 text-center">If the button doesn’t open a wallet, scan the QR with your mobile wallet.</p>
     </div>
     <p class="text-[10px] text-gray-500 text-center mt-3">Open your Aptos wallet and scan the QR. Deeplinks vary by wallet; QR is recommended.</p>
     <div id="aptos-status" class="mt-2 text-center text-gray-600 text-sm">Waiting for payment...</div>
@@ -251,24 +249,17 @@
             if (statusEl) statusEl.textContent = 'Waiting for payment...';
             startSolanaPolling(reference, statusEl);
 
-            // Desktop extension flows (Phantom/Solflare)
-            const hasSolProvider = !!(window.solana && (window.solana.isPhantom || window.solana.isSolflare));
+            // Desktop extension flow (Phantom only)
+            const hasSolProvider = !!(window.solana && window.solana.isPhantom);
             const phantomBtn = document.getElementById('open-phantom');
-            const solflareBtn = document.getElementById('open-solflare');
             const phantomMobile = document.getElementById('open-phantom-mobile');
             if (!hasSolProvider) {
                 phantomBtn?.setAttribute('disabled', 'true');
                 phantomBtn?.classList.add('opacity-50', 'cursor-not-allowed');
-                solflareBtn?.setAttribute('disabled', 'true');
-                solflareBtn?.classList.add('opacity-50', 'cursor-not-allowed');
             } else {
                 phantomBtn?.addEventListener('click', async (e) => {
                     e.preventDefault();
                     try { await sendSolanaUsdcWithExtension(payload); } catch { alert('Phantom failed. Use QR.'); }
-                });
-                solflareBtn?.addEventListener('click', async (e) => {
-                    e.preventDefault();
-                    try { await sendSolanaUsdcWithExtension(payload); } catch { alert('Solflare failed. Use QR.'); }
                 });
             }
 
@@ -340,17 +331,13 @@
             modal.classList.remove('hidden');
             document.body.classList.add('overflow-hidden');
 
-            // If no Aptos wallet provider, disable buttons
+            // If no Aptos wallet provider, disable button
+            const pontem = document.getElementById('open-pontem');
             if (!window.aptos && btns) {
-                const petra = document.getElementById('open-petra');
-                const pontem = document.getElementById('open-pontem');
-                petra?.setAttribute('disabled', 'true');
-                petra?.classList.add('opacity-50', 'cursor-not-allowed');
                 pontem?.setAttribute('disabled', 'true');
                 pontem?.classList.add('opacity-50', 'cursor-not-allowed');
             } else if (btns) {
-                document.getElementById('open-petra')?.addEventListener('click', (e) => { e.preventDefault(); sendAptosUsdcWithExtension(payload).catch(() => alert('Aptos wallet failed. Use QR.')); });
-                document.getElementById('open-pontem')?.addEventListener('click', (e) => { e.preventDefault(); sendAptosUsdcWithExtension(payload).catch(() => alert('Aptos wallet failed. Use QR.')); });
+                pontem?.addEventListener('click', (e) => { e.preventDefault(); sendAptosUsdcWithExtension(payload).catch(() => alert('Aptos wallet failed. Use QR.')); });
             }
         }
 
