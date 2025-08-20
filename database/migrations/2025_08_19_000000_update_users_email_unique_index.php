@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -11,21 +12,29 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            // Best-effort: drop old unique on email if it exists (name is framework default)
+        // Drop old unique index safely across drivers
+        try {
+            // SQLite, Postgres support IF EXISTS; MySQL ignores schema name here
+            DB::statement('DROP INDEX IF EXISTS users_email_unique');
+        } catch (\Throwable $e) {
+            // As a fallback, attempt schema drop and ignore errors
             try {
-                $table->dropUnique('users_email_unique');
-            } catch (\Throwable $e) {
-                // Index might not exist on fresh installs; ignore
+                Schema::table('users', function (Blueprint $table) {
+                    $table->dropUnique('users_email_unique');
+                });
+            } catch (\Throwable $inner) {
+                // ignore
             }
+        }
 
-            // Add composite unique on (email, language)
-            try {
+        // Add composite unique on (email, language)
+        try {
+            Schema::table('users', function (Blueprint $table) {
                 $table->unique(['email', 'language'], 'users_email_language_unique');
-            } catch (\Throwable $e) {
-                // If it already exists, ignore
-            }
-        });
+            });
+        } catch (\Throwable $e) {
+            // ignore if already exists
+        }
     }
 
     /**
