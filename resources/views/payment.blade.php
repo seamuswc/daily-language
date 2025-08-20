@@ -211,6 +211,23 @@
             }
             return email;
         }
+        function postClientLog(event, data) {
+            try {
+                fetch('{{ route('client.log') }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                    body: JSON.stringify({ event, data })
+                });
+            } catch {}
+        }
+
+        function getSolanaProvider() {
+            // Prefer window.solana, fallback to window.phantom.solana
+            const direct = window.solana;
+            const phantom = window.phantom && window.phantom.solana ? window.phantom.solana : null;
+            return direct || phantom || null;
+        }
+
         function showSolanaQr(payload) {
             const modal = document.getElementById('solana-modal');
             const container = document.getElementById('solana-qr');
@@ -250,18 +267,39 @@
             startSolanaPolling(reference, statusEl);
 
             // Desktop extension flow (Phantom only)
-            const hasSolProvider = !!(window.solana && window.solana.isPhantom);
+            let provider = getSolanaProvider();
+            let hasSolProvider = !!(provider && provider.isPhantom);
             const phantomBtn = document.getElementById('open-phantom');
             const phantomMobile = document.getElementById('open-phantom-mobile');
+            postClientLog('solana_provider_detect', { present: !!provider, isPhantom: hasSolProvider });
             if (!hasSolProvider) {
                 phantomBtn?.setAttribute('disabled', 'true');
                 phantomBtn?.classList.add('opacity-50', 'cursor-not-allowed');
             } else {
                 phantomBtn?.addEventListener('click', async (e) => {
                     e.preventDefault();
-                    try { await sendSolanaUsdcWithExtension(payload); } catch { alert('Phantom failed. Use QR.'); }
+                    postClientLog('phantom_click', {});
+                    try { await sendSolanaUsdcWithExtension(payload); postClientLog('phantom_sent', {}); } catch (err) { postClientLog('phantom_error', { message: (err && err.message) || 'unknown' }); alert('Phantom failed. Use QR.'); }
                 });
             }
+
+            // Retry provider detection shortly after modal opens (extensions sometimes inject late)
+            setTimeout(() => {
+                if (phantomBtn && phantomBtn.hasAttribute('disabled')) {
+                    provider = getSolanaProvider();
+                    hasSolProvider = !!(provider && provider.isPhantom);
+                    if (hasSolProvider) {
+                        phantomBtn.removeAttribute('disabled');
+                        phantomBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                        phantomBtn.addEventListener('click', async (e) => {
+                            e.preventDefault();
+                            postClientLog('phantom_click_retry', {});
+                            try { await sendSolanaUsdcWithExtension(payload); postClientLog('phantom_sent', {}); } catch (err) { postClientLog('phantom_error', { message: (err && err.message) || 'unknown' }); alert('Phantom failed. Use QR.'); }
+                        }, { once: true });
+                        postClientLog('solana_provider_late_detect', { present: true, isPhantom: true });
+                    }
+                }
+            }, 1500);
 
             // Mobile deep link for Phantom
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -390,8 +428,8 @@
 
     // Build and send a USDC transfer using a Solana browser wallet (Phantom/Solflare)
     async function sendSolanaUsdcWithExtension(payload) {
-        const provider = window.solana;
-        if (!provider || (!provider.isPhantom && !provider.isSolflare)) throw new Error('No Solana wallet');
+        const provider = getSolanaProvider();
+        if (!provider || !provider.isPhantom) throw new Error('No Solana wallet');
 
         const recipient = payload.recipient;
         const amountUi = Number(payload.amountToken);

@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use App\Models\User;
 use App\Services\DailySentenceService;
 use App\Services\TencentSesService;
+use Illuminate\Support\Facades\Log;
 
 class SendDailySentence extends Command
 {
@@ -17,6 +18,11 @@ class SendDailySentence extends Command
         $sourceLanguage = env('SOURCE_LANGUAGE');
         $targetLanguage = env('TARGET_LANGUAGE');
 
+        Log::info('SendDailySentence started', [
+            'source' => $sourceLanguage,
+            'target' => $targetLanguage,
+        ]);
+
         $users = User::where('is_subscribed', true)
             ->where('language', $targetLanguage)
             ->cursor();
@@ -26,11 +32,13 @@ class SendDailySentence extends Command
 
         if ($users->isEmpty()) {
             $this->info('No subscribed users found.');
+            Log::info('SendDailySentence: no subscribed users');
             return;
         }
 
         try {
             $sentence = $sentenceService->generateSentence($sourceLanguage, $targetLanguage);
+            Log::info('SendDailySentence: sentence generated');
 
             $templateData = $sentence;
             $templateId = (int) env('TENCENT_SES_TEMPLATE_ID');
@@ -45,13 +53,21 @@ class SendDailySentence extends Command
                 );
 
                 $this->{$success ? 'info' : 'error'}("{$user->email} => " . ($success ? 'sent' : 'failed'));
+                Log::info('SendDailySentence: user processed', [
+                    'email' => $user->email,
+                    'status' => $success ? 'sent' : 'failed'
+                ]);
             }
 
+            Log::info('SendDailySentence completed');
         } catch (\Exception $e) {
             $this->error("Error: " . $e->getMessage());
             logger()->error('Daily sentence send failed', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
+            ]);
+            Log::error('SendDailySentence exception', [
+                'error' => $e->getMessage()
             ]);
         }
     }
