@@ -221,7 +221,8 @@
             } catch {}
         }
 
-        function getSolanaProvider() {
+        // Expose provider getter globally so functions outside this scope can use it
+        window.getSolanaProvider = function() {
             // Prefer window.solana, fallback to window.phantom.solana
             const direct = window.solana;
             const phantom = window.phantom && window.phantom.solana ? window.phantom.solana : null;
@@ -267,7 +268,7 @@
             startSolanaPolling(reference, statusEl);
 
             // Desktop extension flow (Phantom only)
-            let provider = getSolanaProvider();
+            let provider = window.getSolanaProvider();
             let hasSolProvider = !!(provider && provider.isPhantom);
             const phantomBtn = document.getElementById('open-phantom');
             const phantomMobile = document.getElementById('open-phantom-mobile');
