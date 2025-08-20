@@ -1,0 +1,174 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Invoice;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use App\Services\SolanaPayService;
+use App\Services\AptosPayService;
+
+class Web3Controller extends Controller
+{
+    public function init(Request $request)
+    {
+        $data = $request->validate([
+            'email' => 'required|email',
+            'plan' => 'required|in:monthly,yearly',
+            'chain' => 'required|in:solana,aptos',
+            'token' => 'required|in:usdc',
+        ]);
+
+        $pricing = config('crypto.pricing');
+        $amountUsd = $data['plan'] === 'yearly' ? (float) $pricing['yearly_usd'] : (float) $pricing['monthly_usd'];
+
+        // USDC: 1 token unit == 1 USD (display amount; on-chain decimals are 6)
+        $amountToken = $amountUsd;
+
+        $reference = Str::uuid()->toString();
+
+        $recipient = $data['chain'] === 'solana'
+            ? config('crypto.solana.merchant_address')
+            : config('crypto.aptos.merchant_address');
+
+        $invoice = Invoice::create([
+            'email' => $data['email'],
+            'plan' => $data['plan'],
+            'chain' => $data['chain'],
+            'token' => $data['token'],
+            'reference' => $reference,
+            'recipient' => $recipient,
+            'amount_usd' => $amountUsd,
+            'amount_token' => (string) $amountToken,
+            'status' => 'pending',
+        ]);
+
+        $payload = [
+            'reference' => $reference,
+            'recipient' => $recipient,
+            'amountToken' => (string) $amountToken,
+            'amountUsd' => (string) $amountUsd,
+            'chain' => $data['chain'],
+            'token' => $data['token'],
+            'solana' => [
+                'network' => config('crypto.solana.network'),
+                'rpcUrl' => config('crypto.solana.rpc_url'),
+                'usdcMint' => config('crypto.solana.usdc_mint'),
+            ],
+            'aptos' => [
+                'network' => config('crypto.aptos.network'),
+                'fullnodeUrl' => config('crypto.aptos.fullnode_url'),
+                'usdcCoinType' => config('crypto.aptos.usdc_coin_type'),
+            ],
+        ];
+
+        return response()->json($payload);
+    }
+
+    public function status(string $reference)
+    {
+        $invoice = Invoice::where('reference', $reference)->firstOrFail();
+
+        // If already confirmed, return as-is
+        if ($invoice->status === 'confirmed') {
+            return response()->json(['status' => 'confirmed', 'txId' => $invoice->tx_id]);
+        }
+
+        if ($invoice->chain === 'solana') {
+            $svc = app(SolanaPayService::class);
+            $sig = $svc->findVerifiedPayment(
+                reference: $invoice->reference,
+                recipient: $invoice->recipient,
+                usdcMint: config('crypto.solana.usdc_mint'),
+                expectedAmountTokens: (string) $invoice->amount_token,
+            );
+
+            if ($sig) {
+                $invoice->update([
+                    'status' => 'confirmed',
+                    'tx_id' => $sig,
+                ]);
+
+                // Activate subscription on success
+                $this->activateSubscription($invoice);
+
+                return response()->json(['status' => 'confirmed', 'txId' => $sig]);
+            }
+        }
+
+        if ($invoice->chain === 'aptos') {
+            // No polling implementation yet; status remains pending until user submits tx hash
+        }
+
+        return response()->json(['status' => $invoice->status, 'txId' => $invoice->tx_id]);
+    }
+
+    public function submitTx(Request $request)
+    {
+        $data = $request->validate([
+            'reference' => 'required|uuid',
+            'tx' => 'required|string',
+        ]);
+        $invoice = Invoice::where('reference', $data['reference'])->firstOrFail();
+        if ($invoice->status === 'confirmed') {
+            return response()->json(['status' => 'confirmed', 'txId' => $invoice->tx_id]);
+        }
+        $ok = false;
+        if ($invoice->chain === 'solana') {
+            $svc = app(SolanaPayService::class);
+            $ok = $svc->verifyTransactionSignature(
+                signature: $data['tx'],
+                recipient: $invoice->recipient,
+                usdcMint: config('crypto.solana.usdc_mint'),
+                expectedAmountTokens: (string) $invoice->amount_token,
+            );
+        } elseif ($invoice->chain === 'aptos') {
+            $svc = app(AptosPayService::class);
+            $ok = $svc->verifyTransactionHash(
+                hash: $data['tx'],
+                recipient: $invoice->recipient,
+                usdcCoinType: config('crypto.aptos.usdc_coin_type'),
+                expectedAmountTokens: (string) $invoice->amount_token,
+            );
+        }
+        if ($ok) {
+            $invoice->update([
+                'status' => 'confirmed',
+                'tx_id' => $data['tx'],
+            ]);
+            $this->activateSubscription($invoice);
+            return response()->json(['status' => 'confirmed', 'txId' => $data['tx']]);
+        }
+        return response()->json(['status' => 'pending']);
+    }
+
+    protected function activateSubscription(Invoice $invoice): void
+    {
+        $targetLanguage = env('TARGET_LANGUAGE');
+        $user = User::firstOrCreate(
+            ['email' => $invoice->email, 'language' => $targetLanguage],
+            ['language' => $targetLanguage]
+        );
+
+        $isYearly = $invoice->plan === 'yearly';
+        $newExpiration = $isYearly ? now()->addYear() : now()->addDays(30);
+
+        if ($user->is_subscribed && $user->subscription_expires_at && $user->subscription_expires_at > now()) {
+            $user->update([
+                'subscription_expires_at' => $isYearly
+                    ? $user->subscription_expires_at->copy()->addYear()
+                    : $user->subscription_expires_at->copy()->addDays(30),
+            ]);
+        } else {
+            $user->update(['subscription_expires_at' => $newExpiration]);
+        }
+
+        $user->update([
+            'is_subscribed' => true,
+            'plan_type' => $invoice->plan,
+        ]);
+    }
+}
+
+

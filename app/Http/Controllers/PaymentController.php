@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Services\CoinbaseCommerceService;
 use App\Services\DailySentenceService;
+use App\Models\Invoice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use App\Models\User;
@@ -41,53 +42,7 @@ class PaymentController extends Controller
 
     public function processPayment(Request $request)
     {
-        $request->validate([
-            'email' => 'required|email',
-            'plan' => 'required|in:monthly,yearly'
-        ]);
-
-        $targetLanguage = env('TARGET_LANGUAGE');
-
-        $user = User::firstOrCreate(
-            ['email' => $request->email, 'language' => $targetLanguage],
-            ['language' => $targetLanguage]
-        );
-
-        $plan = $request->plan;
-        $amount = ($plan === 'yearly') ? '12.00' : '2.00';
-        $description = ($plan === 'yearly') 
-            ? 'Yearly subscription' 
-            : 'Monthly subscription';
-
-        $expiresAt = ($plan === 'yearly') 
-            ? now()->addYear()->toDateTimeString()
-            : now()->addDays(30)->toDateTimeString();
-
-        $chargeData = [
-            'name' => 'Daily Sentence Subscription',
-            'description' => $description,
-            'pricing_type' => 'fixed_price',
-            'local_price' => [
-                'amount' => $amount,
-                'currency' => 'USD'
-            ],
-            'metadata' => [
-                'user_id' => $user->id,
-                'email' => $user->email,
-                'plan_type' => $plan,
-                'expires_at' => $expiresAt
-            ],
-            'redirect_url' => route('payment.success'),
-            'cancel_url' => route('payment.cancel'),
-        ];
-
-        $charge = $this->coinbaseService->createCharge($chargeData);
-
-        if ($charge && isset($charge['data']['hosted_url'])) {
-            return redirect($charge['data']['hosted_url']);
-        }
-
-        return back()->with('error', 'Failed to create payment. Please try again.');
+        return back()->with('error', 'Card/crypto checkout is disabled. Use Aptos or Solana buttons.');
     }
 
     public function handleWebhook(Request $request)
