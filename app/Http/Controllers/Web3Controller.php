@@ -26,7 +26,10 @@ class Web3Controller extends Controller
         // USDC: 1 token unit == 1 USD (display amount; on-chain decimals are 6)
         $amountToken = $amountUsd;
 
-        $reference = Str::uuid()->toString();
+        // Generate a Solana Pay compliant reference (public key) for Solana; use UUID for Aptos
+        $reference = $data['chain'] === 'solana'
+            ? $this->generateSolanaReferencePubkey()
+            : Str::uuid()->toString();
 
         $recipient = $data['chain'] === 'solana'
             ? config('crypto.solana.merchant_address')
@@ -104,10 +107,38 @@ class Web3Controller extends Controller
         return response()->json(['status' => $invoice->status, 'txId' => $invoice->tx_id]);
     }
 
+    protected function generateSolanaReferencePubkey(): string
+    {
+        // Simple random 32-byte key, base58 encode (compatible with solana-web3.js PublicKey)
+        $random = random_bytes(32);
+        return $this->base58Encode($random);
+    }
+
+    protected function base58Encode(string $binary): string
+    {
+        $alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+        $num = gmp_init(bin2hex($binary), 16);
+        $encoded = '';
+        while (gmp_cmp($num, 0) > 0) {
+            $rem = gmp_intval(gmp_mod($num, 58));
+            $encoded = $alphabet[$rem] . $encoded;
+            $num = gmp_div_q($num, 58);
+        }
+        // Preserve leading zeros as '1's
+        foreach (str_split($binary) as $byte) {
+            if (ord($byte) === 0) {
+                $encoded = '1' . $encoded;
+            } else {
+                break;
+            }
+        }
+        return $encoded ?: '1';
+    }
+
     public function submitTx(Request $request)
     {
         $data = $request->validate([
-            'reference' => 'required|uuid',
+            'reference' => 'required|string',
             'tx' => 'required|string',
         ]);
         $invoice = Invoice::where('reference', $data['reference'])->firstOrFail();

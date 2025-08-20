@@ -115,8 +115,8 @@ class DailySentenceService
                         'kanji'     => $matches[1], // English sentence
                         'hiragana'  => $matches[2], // Katakana reading
                         'romaji'    => '',          // Optional
-                        'breakdown' => trim($matches[3]),
-                        'grammar'   => trim($matches[4]),
+                        'breakdown' => $this->normalizeMultiline(trim($matches[3])),
+                        'grammar'   => $this->normalizeMultiline(trim($matches[4])),
                         'meaning'   => trim($matches[5]),
                     ];
                 }
@@ -125,14 +125,15 @@ class DailySentenceService
             case 'english_japanese':
             default:
                 if (preg_match('/漢字:\s*(.*?)\nひらがな:\s*(.*?)\nRomaji:\s*(.*?)\nBreakdown:\s*(.*?)\nGrammar:\s*(.*?)\nMeaning:\s*(.*)/s', $content, $matches)) {
-                    return array_map('trim', [
-                        'kanji'     => $matches[1],
-                        'hiragana'  => $matches[2],
-                        'romaji'    => $matches[3],
-                        'breakdown' => $matches[4],
-                        'grammar'   => $matches[5],
-                        'meaning'   => $matches[6]
-                    ]);
+                    $result = [
+                        'kanji'     => trim($matches[1]),
+                        'hiragana'  => trim($matches[2]),
+                        'romaji'    => trim($matches[3]),
+                        'breakdown' => $this->normalizeMultiline(trim($matches[4])),
+                        'grammar'   => $this->normalizeMultiline(trim($matches[5])),
+                        'meaning'   => trim($matches[6])
+                    ];
+                    return $result;
                 }
                 break;
         }
@@ -157,5 +158,20 @@ class DailySentenceService
             'grammar'   => '〜ています = ongoing action',
             'meaning'   => 'It is raining today'
         ];
+    }
+
+    protected function normalizeMultiline(string $text): string
+    {
+        // If it already contains newlines, respect them
+        if (strpos($text, "\n") !== false) {
+            return $text;
+        }
+        // Replace common inline separators with new lines
+        // Handle patterns like "a） + b） + c）" or with spaces around plus
+        $parts = preg_split('/\s*\+\s*/u', $text);
+        if ($parts && count($parts) > 1) {
+            return implode("\n", array_map('trim', $parts));
+        }
+        return $text;
     }
 }
