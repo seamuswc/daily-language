@@ -1,5 +1,5 @@
-// resources/lang/en_ja/ui.php
 <?php
+// resources/lang/en_ja/ui.php
 
 return [
     'title' => 'Japanese Learning Service',
