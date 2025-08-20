@@ -282,6 +282,7 @@
                 universal.searchParams.set('reference', reference);
                 universal.searchParams.set('label', 'Daily Sentence Subscription');
                 universal.searchParams.set('message', 'Subscription payment');
+                universal.searchParams.set('network', 'mainnet-beta');
                 phantomMobile.href = universal.toString();
                 phantomMobile.classList.remove('hidden');
             }
