@@ -1,4 +1,3 @@
-<!-- resources/views/payment.blade.php -->
 <!DOCTYPE html>
 <html lang="{{ app()->getLocale() }}">
 <head>
@@ -43,6 +42,7 @@
             @endif
 
             <form>
+                <div id="client-error" class="mb-4 rounded bg-red-100 text-red-800 p-3 hidden"></div>
                 <div class="mb-4">
                     <label for="email" class="block text-gray-700 text-sm font-bold mb-2">{{ __('ui.email') }}</label>
                     <input type="email" id="email" name="email" required
@@ -167,6 +167,13 @@
 </html>
 <script>
     (function() {
+        function showClientError(message) {
+            const box = document.getElementById('client-error');
+            if (!box) return;
+            box.textContent = message;
+            box.classList.remove('hidden');
+        }
+
         async function initCheckout(email, plan, chain, token) {
             const res = await fetch('{{ route('checkout.init') }}', {
                 method: 'POST',
@@ -176,7 +183,17 @@
                 },
                 body: JSON.stringify({ email, plan, chain, token })
             });
-            if (!res.ok) throw new Error('Failed to init checkout');
+            if (res.status === 422) {
+                const data = await res.json().catch(() => ({}));
+                const errors = (data && data.errors) || {};
+                const msg = (errors.email && errors.email[0])
+                    || (errors.plan && errors.plan[0])
+                    || (errors.chain && errors.chain[0])
+                    || (errors.token && errors.token[0])
+                    || 'Invalid input.';
+                throw new Error(msg);
+            }
+            if (!res.ok) throw new Error('Failed to start checkout.');
             return await res.json();
         }
         function getPlan() {
@@ -333,7 +350,8 @@
                     showAptosQr(payload);
                 }
             } catch (e) {
-                alert('Failed to start checkout.');
+                showClientError(e && e.message ? e.message : 'Failed to start checkout.');
+                return;
             }
         }
         document.getElementById('pay-aptos')?.addEventListener('click', () => handle('aptos'));

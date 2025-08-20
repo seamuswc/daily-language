@@ -1,4 +1,3 @@
-<!-- resources/views/payment-cancel.blade.php -->
 <!DOCTYPE html>
 <html lang="{{ app()->getLocale() }}">
 <head>
