@@ -155,6 +155,11 @@
     </div>
     <p class="text-[10px] text-gray-500 text-center mt-3">Open your Aptos wallet and scan the QR. Deeplinks vary by wallet; QR is recommended.</p>
     <div id="aptos-status" class="mt-2 text-center text-gray-600 text-sm">Waiting for payment...</div>
+    <div class="mt-4">
+        <label for="aptos-tx-hash" class="block text-sm font-medium text-gray-700">Paste Transaction Hash (after paying via QR)</label>
+        <input type="text" id="aptos-tx-hash" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+        <button id="submit-aptos-tx" class="mt-2 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Submit Transaction</button>
+    </div>
 </div>
 </div>
 <!-- QR Code lib -->
@@ -341,7 +346,9 @@
             }, 7000);
         }
 
+        let currentAptosPayload = null;
         function showAptosQr(payload) {
+            currentAptosPayload = payload;
             const modal = document.getElementById('aptos-modal');
             const container = document.getElementById('aptos-qr');
             const refEl = document.getElementById('aptos-ref');
@@ -502,4 +509,40 @@
         } catch {}
         return res.hash;
     }
+
+    document.getElementById('submit-aptos-tx')?.addEventListener('click', async () => {
+        const hash = document.getElementById('aptos-tx-hash').value.trim();
+        if (!hash) {
+            alert('Please enter the transaction hash.');
+            return;
+        }
+        if (!currentAptosPayload) {
+            alert('Payload not found. Please try again.');
+            return;
+        }
+        const reference = currentAptosPayload.reference;
+        const statusEl = document.getElementById('aptos-status');
+        if (statusEl) statusEl.textContent = 'Verifying transaction...';
+        try {
+            const res = await fetch('{{ route('checkout.submit_tx') }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                body: JSON.stringify({ reference, tx: hash })
+            });
+            if (!res.ok) throw new Error('Submit failed');
+            const data = await res.json();
+            if (data.status === 'confirmed') {
+                if (statusEl) statusEl.textContent = 'Payment confirmed. Activating subscription...';
+                setTimeout(() => {
+                    document.getElementById('aptos-modal').classList.add('hidden');
+                    document.body.classList.remove('overflow-hidden');
+                    window.location.href = '{{ route('payment.success') }}';
+                }, 1200);
+            } else {
+                if (statusEl) statusEl.textContent = 'Transaction not verified. Please check and try again.';
+            }
+        } catch (e) {
+            if (statusEl) statusEl.textContent = 'Failed to submit: ' + (e.message || 'unknown error');
+        }
+    });
 </script>

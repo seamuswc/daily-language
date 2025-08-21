@@ -27,9 +27,6 @@ class SetupProductionEnv extends Command
             'SOURCE_LANGUAGE'             => $this->ask('Source language (e.g. english)', 'english'),
             'TARGET_LANGUAGE'             => $this->ask('Target language (e.g. japanese)', 'japanese'),
 
-            'COINBASE_COMMERCE_API_KEY'   => $this->secret('Coinbase Commerce API key'),
-            'COINBASE_COMMERCE_WEBHOOK_SECRET' => $this->secret('Coinbase Webhook Secret'),
-
             'DEEPSEEK_API_KEY'            => $this->secret('DeepSeek API Key'),
 
             'TENCENT_SECRET_ID'           => $this->secret('Tencent Cloud Secret ID'),
